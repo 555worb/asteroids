@@ -1,0 +1,6 @@
+{
+  "name": "asteroids-game",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "framework": "vite"
+}
