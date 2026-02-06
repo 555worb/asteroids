@@ -1,0 +1,17 @@
+{
+  "name": "asteroids-game",
+  "version": "1.0.0",
+  "description": "Ein klassisches Asteroids-Spiel vom Atari (1980er) - Nachbau im Browser",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "http-server dist/ -p 8080 -g"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "http-server": "^14.1.1"
+  }
+}

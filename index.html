@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroids - Klassisches Atari Spiel</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Security Headers: Schützen vor XSS Attacken -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- Content Security Policy: Nur JS von diesem Server -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ASTEROIDS</h1>
+            <div class="score-display">
+                <span>Score: <span id="score">0</span></span>
+                <span>Level: <span id="level">1</span></span>
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="controls">
+            <p><strong>Steuerung:</strong></p>
+            <p>← → : Drehen | ↑ : Beschleunigen | Space : Schießen</p>
+            <p id="gameStatus"></p>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
