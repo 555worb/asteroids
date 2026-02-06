@@ -19,6 +19,112 @@ let asteroids = [];
 let bullets = [];
 let keys = {};
 
+// ============================================
+// SOUND SYSTEM - Web Audio API (Retro Sounds)
+// ============================================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playShoot() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+}
+
+function playExplosion(size) {
+    const duration = 0.2 + size * 0.15;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.2 + size * 0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800 / size, audioCtx.currentTime);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    noise.start();
+    noise.stop(audioCtx.currentTime + duration);
+}
+
+let thrustNode = null;
+let thrustGain = null;
+
+function startThrust() {
+    if (thrustNode) return;
+    const bufferSize = audioCtx.sampleRate * 2;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    thrustNode = audioCtx.createBufferSource();
+    thrustNode.buffer = buffer;
+    thrustNode.loop = true;
+    thrustGain = audioCtx.createGain();
+    thrustGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(200, audioCtx.currentTime);
+    thrustNode.connect(filter);
+    filter.connect(thrustGain);
+    thrustGain.connect(audioCtx.destination);
+    thrustNode.start();
+}
+
+function stopThrust() {
+    if (thrustNode) {
+        thrustGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        thrustNode.stop(audioCtx.currentTime + 0.1);
+        thrustNode = null;
+        thrustGain = null;
+    }
+}
+
+function playHit() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+}
+
+function playLevelUp() {
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.1);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.1 + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + i * 0.1);
+        osc.stop(audioCtx.currentTime + i * 0.1 + 0.15);
+    });
+}
+
 // Farben für buntes Design
 const colors = {
     player: '#00ff00',
@@ -126,6 +232,7 @@ class Player {
             Math.sin(this.angle) * 7 + this.velocity.y
         );
         bullets.push(bullet);
+        playShoot();
     }
 }
 
@@ -277,6 +384,8 @@ function checkCollisions() {
                 score += pointMap[asteroid.size];
                 scoreDisplay.textContent = score;
 
+                playExplosion(asteroid.size);
+
                 // Asteroiden splitten
                 const newAsteroids = asteroid.split();
                 asteroids.splice(j, 1);
@@ -293,6 +402,7 @@ function checkCollisions() {
             const distance = Math.hypot(player.x - asteroid.x, player.y - asteroid.y);
             if (distance < player.radius + asteroid.radius) {
                 // Spieler getroffen
+                playHit();
                 player.invulnerable = 120; // 2 Sekunden Unverwundbarkeit
                 player.velocity = { x: 0, y: 0 };
                 break;
@@ -326,6 +436,7 @@ function update() {
         level++;
         levelDisplay.textContent = level;
         gameStatusDisplay.textContent = `Level ${level}! Nächste Welle...`;
+        playLevelUp();
         initializeAsteroids();
     }
 }
@@ -364,16 +475,23 @@ function gameLoop() {
 
 // Keyboard Input
 document.addEventListener('keydown', (e) => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     keys[e.key] = true;
 
     if (e.key === ' ') {
         e.preventDefault();
         player.shoot();
     }
+    if (e.key === 'ArrowUp') {
+        startThrust();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
     keys[e.key] = false;
+    if (e.key === 'ArrowUp') {
+        stopThrust();
+    }
 });
 
 // Starte das Spiel
