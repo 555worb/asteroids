@@ -9,9 +9,8 @@
     "preview": "vite preview",
     "serve": "http-server dist/ -p 8080 -g"
   },
-  "dependencies": {},
   "devDependencies": {
-    "vite": "^5.0.0",
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "vite": "^7.3.1"
   }
 }
